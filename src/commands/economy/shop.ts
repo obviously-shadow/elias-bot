@@ -4,6 +4,8 @@ import shop from '../../json/shop.json';
 import { Embed, EmbedColor } from '../../structure/Embed';
 import emojis from '../../json/emojis.json';
 import { UserModel } from '../../schemas/User';
+import fs from 'fs';
+import path from 'path';
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -155,24 +157,19 @@ module.exports = {
 
 	async onAutocompleteInteraction(interaction: AutocompleteInteraction) {
 		const focusedOption = interaction.options.getFocused(true);
-		if (focusedOption.name === 'item') {
-			const user = await UserModel.findById(interaction.user.id);
-			if (!user) {
-				interaction.respond([]);
-				return;
-			}
-
-			const inventoryItems = Array.from(user.inventory.keys());
-			const filteredItems = inventoryItems.filter(item =>
-				item.toLowerCase().includes(focusedOption.value.toLowerCase())
-			);
-
-			const results = filteredItems.map(item => ({
-				name: item,
-				value: item
-			}));
-
-			interaction.respond(results);
+		const user = await UserModel.findById(interaction.user.id);
+	
+		if (!user) {
+			interaction.respond([]);
+			return;
 		}
+	
+		const results = Array.from(user.inventory.entries())
+			.filter(([item, quantity]) => quantity > 0)
+			.map(([item]) => item)
+			.filter(item => item.toLowerCase().includes(focusedOption.value.toLowerCase()))
+			.map(item => ({ name: item, value: item }));
+	
+		interaction.respond(results);
 	}
 } satisfies Command;
